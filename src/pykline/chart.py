@@ -18,55 +18,6 @@ FIELDS_REQUIRED = ["timestamp", "open", "close", "high", "low"]
 
 
 class Chart:
-    def __init__(
-        self,
-        df: pd.DataFrame,
-        fields: Fields = None,
-    ) -> None:
-        """
-        Initialize chart
-        :param df: pandas DataFrame:
-            The DataFrame which contains kline data
-            Example df:
-                     timestamp     open     high      low    close  volume
-            0    1517846400000   7424.6   7511.3   6032.3   7310.1  224461
-            1    1517932800000   7310.1   8499.9   6810.0   8165.4  148807
-            2    1518019200000   8166.7   8700.8   7400.0   8245.1   24467
-            3    1518105600000   8244.0   8494.0   7760.0   8364.0   29834
-            4    1518192000000   8363.6   9036.7   8269.8   8311.9   28203
-
-        :param fields: dict of renamed fields
-            The key is target field name, and the value is original column name.
-            Required fields are "timestamp", "open", "close", "high", "low".
-            Optional fields are "volume", "turnover".
-
-            If your dataframe's column names are not named as above,
-            you can use the fields parameter to rename them:
-            Example df which need fields parameter:
-                            dt        o        h        l        c  volume
-            0    1517846400000   7424.6   7511.3   6032.3   7310.1  224461
-            1    1517932800000   7310.1   8499.9   6810.0   8165.4  148807
-            2    1518019200000   8166.7   8700.8   7400.0   8245.1   24467
-            3    1518105600000   8244.0   8494.0   7760.0   8364.0   29834
-            4    1518192000000   8363.6   9036.7   8269.8   8311.9   28203
-            The fields parameter should be:
-            fields = {
-                "timestamp": "dt",
-                "open": "o",
-                "close": "c",
-                "high": "h",
-                "low": "l",
-            }
-        """
-        if len(df) == 0 or df.empty:
-            raise ValueError("DataFrame is empty!")
-
-        self.kline: pd.DataFrame = df.copy()
-        if fields is not None:
-            self.kline = self.kline.rename(columns={v: k for k, v in fields.items()})
-        self._check_required_fields()
-        self._convert_timestamp()
-        self.indicators: List[Indicator] = []
 
     def _check_required_fields(self) -> None:
         """
@@ -105,23 +56,75 @@ class Chart:
             elif max_ts < 1e16:  # Microseconds
                 ts_millis = ts_numeric // 1000  # Convert to milliseconds
             else:  # nanoseconds
-                ts_millis = ts_numeric // 10**6  # Convert to nanoseconds
+                ts_millis = ts_numeric // 10 ** 6  # Convert to nanoseconds
             datetime_series = ts_millis.astype("int64")
         else:
             # Parse string timestamps
             datetime_series = (
-                pd.to_datetime(ts_series).view("int64") // 10**6
+                    pd.to_datetime(ts_series).view("int64") // 10 ** 6
             ).astype("int64")
 
         # Set timestamp column
         self.kline.loc[:, "timestamp"] = datetime_series
 
-    def add(
-        self,
-        indicator: Union[str, List[Union[str, List, Tuple, Dict]]],
-        params: List[int] = None,
-        overlay: bool = False,
-    ) -> None:
+    def data(self,
+             df: pd.DataFrame,
+             fields: Fields = None, ) -> "Chart":
+        """
+        Add data to chart
+
+        Args:
+            df: pandas DataFrame:
+                The DataFrame which contains kline data
+                Example df:
+                         timestamp     open     high      low    close  volume
+                0    1517846400000   7424.6   7511.3   6032.3   7310.1  224461
+                1    1517932800000   7310.1   8499.9   6810.0   8165.4  148807
+                2    1518019200000   8166.7   8700.8   7400.0   8245.1   24467
+                3    1518105600000   8244.0   8494.0   7760.0   8364.0   29834
+                4    1518192000000   8363.6   9036.7   8269.8   8311.9   28203
+
+            fields: dict of renamed fields
+                The key is target field name, and the value is original column name.
+                Required fields are "timestamp", "open", "close", "high", "low".
+                Optional fields are "volume", "turnover".
+
+                If your dataframe's column names are not named as above,
+                you can use the fields parameter to rename them:
+                Example df which need fields parameter:
+                                dt        o        h        l        c  volume
+                0    1517846400000   7424.6   7511.3   6032.3   7310.1  224461
+                1    1517932800000   7310.1   8499.9   6810.0   8165.4  148807
+                2    1518019200000   8166.7   8700.8   7400.0   8245.1   24467
+                3    1518105600000   8244.0   8494.0   7760.0   8364.0   29834
+                4    1518192000000   8363.6   9036.7   8269.8   8311.9   28203
+                The fields parameter should be:
+                fields = {
+                    "timestamp": "dt",
+                    "open": "o",
+                    "close": "c",
+                    "high": "h",
+                    "low": "l",
+                }
+        """
+        if len(df) == 0 or df.empty:
+            raise ValueError("DataFrame is empty!")
+
+        self.kline: pd.DataFrame = df.copy()
+        if fields is not None:
+            self.kline = self.kline.rename(columns={v: k for k, v in fields.items()})
+        self._check_required_fields()
+        self._convert_timestamp()
+        self._indicators: List[Indicator] = []
+
+        return self
+
+    def indicator(
+            self,
+            indicator: Union[str, List[Union[str, List, Tuple, Dict]]],
+            params: List[int] = None,
+            overlay: bool = False,
+    ) -> "Chart":
         """
         Add technical indicators to the chart
 
@@ -140,28 +143,29 @@ class Chart:
 
         Example::
             # Add single indicator with default params
-            chart.add("MA")
+            chart.indicator("MA")
 
             # Add multiple indicators
-            chart.add(["MACD", "RSI"])
+            chart.indicator(["MACD", "RSI"])
 
             # Custom parameters
-            chart.add([("MA", [5, 10], True), ("RSI", [14])])
+            chart.indicator([("MA", [5, 10], True), ("RSI", [14])])
 
             # Full specification
-            chart.add([
+            chart.indicator([
                 {"name": "BOLL", "params": [20, 2], "overlay": True},
                 {"name": "VOL", "params": [5, 10]}
             ])
         """
         if isinstance(indicator, str):
-            self.indicators.append(Indicator(indicator, params, overlay=overlay))
-            return
+            self._indicators.append(Indicator(indicator, params, overlay=overlay))
+            return self
         for ind in indicator:
-            self.indicators.append(self._parse_indicator_spec(ind))
+            self._indicators.append(self._parse_indicator_spec(ind))
+        return self
 
     def _parse_indicator_spec(
-        self, indicator: Union[str, List, Tuple, Dict]
+            self, indicator: Union[str, List, Tuple, Dict]
     ) -> Indicator:
         if isinstance(indicator, str):
             return Indicator(indicator)
@@ -186,10 +190,10 @@ class Chart:
             "title": title,
             "theme": theme,
             "data": self.kline.to_dict(orient="records"),
-            "indicators": [ind.to_html() for ind in self.indicators],
+            "indicators": [ind.to_html() for ind in self._indicators],
             "resized": kwargs.get("resized", True),
             "width": kwargs.get("width", "100%"),
-            "height": kwargs.get("height", "100vh"),
+            "height": kwargs.get("height", "98vh"),
         }
 
         render_html(context)
