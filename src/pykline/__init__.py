@@ -1,2 +1,1 @@
-def hello() -> str:
-    return "Hello from pykline!"
+from .chart import Chart

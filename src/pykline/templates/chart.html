@@ -2,9 +2,61 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="utf-8"/>
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+    />
+    <meta
+            name="theme-color"
+            content="#000000"
+    />
+    <meta
+            name="keywords"
+            content="Quick Start"
+    />
+    <meta
+            name="description"
+            content="Quick Start"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.0-alpha5/dist/umd/klinecharts.min.js"></script>
+    <title>{{ title }}</title>
+    <style>
+        .chart-container {
+            width: {{ width }};
+            height: {{ height }};
+        }
+    </style>
 </head>
 <body>
+<div
+        id="chart"
+        class="chart-container"
+></div>
+<script>
+    const mode = "{{ theme }}";
+    const inJupyter = {{ in_jupyter|tojson }};
+    const resized = {{ resized|tojson }};
+    const data = {{ data|tojson }};
 
+    function initChart() {
+        if (resized) {
+            window.onresize = function () {
+                if (window.chart) {
+                    window.chart.resize();
+                }
+            }
+        }
+        window.chart = klinecharts.init("chart");
+    }
+
+    window.onload = function () {
+        initChart();
+        {% for indicator in indicators %}
+            {{ indicator }}
+        {% endfor %}
+        chart.applyNewData(data);
+    };
+</script>
 </body>
 </html>

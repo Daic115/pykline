@@ -4,11 +4,35 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Daic", email = "214939381@qq.com" }
+    { name = "Daic", email = "daiccccc@foxmail.com" }
 ]
 requires-python = ">=3.8"
-dependencies = []
+dependencies = [
+    "jinja2",
+    "pandas",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "black>=24.8.0",
+    "mypy>=1.14.1",
+    "ruff>=0.11.2",
+]
+
+[tool.ruff]
+target-version = "py311"
+output-format = "full"
+
+[tool.ruff.lint]
+select = [
+    "B", # flake8-bugbear
+    "E", # pycodestyle error
+    "F", # pyflakes
+    "UP", # pyupgrade
+    "W", # pycodestyle warning
+]
+ignore = ["E501"]
